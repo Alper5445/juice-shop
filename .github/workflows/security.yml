@@ -1,4 +1,6 @@
 
+
+
 name: CI Pipeline
 
 on:
@@ -7,7 +9,20 @@ on:
       - main
 
 jobs:
+  build-project:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build project
+        run: npm run build
+
   docker-test:
+    needs: build-project
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -48,6 +63,4 @@ jobs:
         uses: github/codeql-action/upload-sarif@v2
         with:
           sarif_file: semgrep.sarif
-
-
 
