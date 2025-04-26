@@ -63,4 +63,13 @@ jobs:
         uses: github/codeql-action/upload-sarif@v2
         with:
           sarif_file: semgrep.sarif
+  dummy-deploy:
+    needs: semgrep-scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Dummy Deploy Step
+        run: echo "✅ Dummy deploy işlemi başarılı bir şekilde tamamlandı."
 
