@@ -1,7 +1,5 @@
 
-
-
-name: Docker Build and Semgrep SAST with SARIF
+name: CI Pipeline
 
 on:
   push:
@@ -9,37 +7,47 @@ on:
       - main
 
 jobs:
-  build:
+  docker-test:
     runs-on: ubuntu-latest
-
     steps:
-      # Repository'yi checkout et
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # Docker'ı kur
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
-
-      # Docker image'ı build et
       - name: Build Docker image
-        run: |
-          docker build -t my-docker-image .
+        run: docker build -t my-juice-shop .
 
-      # Semgrep kurulum
-      - name: Install Semgrep
-        run: |
-          python -m pip install semgrep
-
-      # Semgrep taraması ve SARIF raporunun oluşturulması
-      - name: Run Semgrep Analysis
-        run: |
-          docker run --rm -v $(pwd):/app my-docker-image semgrep --config auto --output results.sarif --sarif
-
-      # SARIF raporunu yükle (GitHub'a rapor ekle)
-      - name: Upload SARIF Report
-        uses: github/codeql-action/upload-sarif@v1
+  gitleaks-scan:
+    needs: docker-test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Run Gitleaks to detect secrets
+        uses: gitleaks/gitleaks-action@v2.3.2
         with:
-          sarif_file: results.sarif
+          config-path: ""
+          report-format: sarif
+          report-path: gitleaks.sarif
+
+  semgrep-scan:
+    needs: gitleaks-scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run Semgrep SAST Scan
+        uses: returntocorp/semgrep-action@v1
+        with:
+          config: p/default
+          generate-sarif: true
+          output: semgrep.sarif
+
+      - name: Upload SARIF report
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: semgrep.sarif
+
 
 
